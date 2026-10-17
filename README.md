@@ -1,6 +1,6 @@
 # test-spring-mvc-profile
 
-Spring MVC（Spring Boot なし）で、環境変数 `APP_ENV` によって CSS フォルダーと Logback の設定ファイルが切り替わるかを確かめるサンプルです。
+Spring MVC（Spring Boot なし）で、環境変数 `APP_ENV` によって CSS フォルダー、Logback の設定ファイル、プロパティファイルが切り替わるかを確かめるサンプルです。
 
 - JDK 21 / Maven / Spring Framework 6.2.11 / Jakarta Servlet 6.0 / Logback 1.5.18
 - JBoss EAP 8.1（Jakarta EE 10）向け。web.xml は使いません
@@ -19,6 +19,8 @@ src/main/webapp/prod/env.css                           # ピンクの背景と "
 src/main/resources/logback.xml                         # APP_ENV に応じた設定を include する
 src/main/resources/logback-dev.xml                     # com.example と root は DEBUG
 src/main/resources/logback-prod.xml                    # com.example と root は INFO
+src/main/resources/application-dev.properties          # dev 用。app.message は APP_MESSAGE で上書きできる
+src/main/resources/application-prod.properties         # prod 用。同上
 src/main/webapp/WEB-INF/jboss-deployment-structure.xml # WAR 内の Logback を使う
 ```
 
@@ -76,6 +78,23 @@ OpenShift では `oc set env deployment/<eap-app> APP_ENV=dev` で指定でき�
 
 `/` を開くと `app-env-log-check` を DEBUG と INFO で出力します。prod では INFO だけが EAP のログに出ます。EAP 標準の SLF4J を外して WAR 内の Logback を使うため、`jboss-deployment-structure.xml` で `org.slf4j` と `org.slf4j.impl` を除外しています。どのファイルを読むかも起動時に1回だけ決まります。
 
+## プロパティファイル
+
+`application-${APP_ENV}.properties` を読みます。未設定のときは `application-prod.properties` です。ファイルの選択は `PropertySourcesPlaceholderConfigurer` を作る時点で行い、システムプロパティの `APP_ENV` を環境変数より優先します。
+
+| キー | dev | prod |
+|---|---|---|
+| app.profile.label | DEV | PROD |
+| app.message | `${APP_MESSAGE:これは dev のプロパティです}` | `${APP_MESSAGE:これは prod のプロパティです}` |
+
+`app.message` は、未設定ならファイルに書いた既定値（`${APP_MESSAGE:既定値}` のコロン以降）になります。環境変数 `APP_MESSAGE` を指定すると、その値に変わります。Spring は環境変数名の `.` と `_` を同じものとして扱い、大文字小文字も区別しないため、`APP_MESSAGE` はキー `app.message` に対応します。
+
+同じキーをシステムプロパティで上書きするときは `-Dapp.message=...` です。システムプロパティは環境変数より優先されます。`-DAPP_MESSAGE=...` は、環境変数 `APP_MESSAGE` が無いときだけ、ファイル内のプレースホルダから読まれます。
+
+`app.profile.label` のようにプレースホルダの無い値も、同じキーのシステムプロパティ（`-Dapp.profile.label=...`）があればそちらが使われます。プロパティファイル側を優先したい場合は `setLocalOverride(true)` にします。このサンプルでは既定のまま（Environment が優先）です。
+
+画面の `app.profile.label` と `app.message` で、ファイルの切り替えと環境変数による上書きを確認できます。
+
 ## 確認する URL
 
 - http://localhost:8080/test-spring-mvc-profile/
@@ -89,7 +108,15 @@ OpenShift では `oc set env deployment/<eap-app> APP_ENV=dev` で指定でき�
 
 画面は `common.css` だけを読み込みます。`common.css` 先頭の `@import url("env.css")` が、同じ `/static/env.css` をブラウザに要求します。色と表示文言は、その CSS 変数（`--env-bg`、`--env-label`、`--env-label-color`）で切り替わります。`@import` は他のルールより前に置きます。
 
-画面には、`@Value` で読んだ値と、システムプロパティ・環境変数の生の値も表示されます。
+画面には、`@Value` で読んだ値と、システムプロパティ・環境変数の生の値も表示されます。プロパティの確認例は次のとおりです。
+
+```
+set APP_ENV=dev
+set APP_MESSAGE=環境変数で上書き
+standalone.bat
+```
+
+このとき `app.profile.label` は `DEV`、`app.message` は `環境変数で上書き` になります。`APP_MESSAGE` を外して再起動すると、dev の既定メッセージに戻ります。
 
 ## 注意点
 
