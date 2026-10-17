@@ -1,9 +1,9 @@
 # test-spring-mvc-profile
 
-Spring MVC（Spring Boot なし）の `addResourceHandlers` で、環境変数 `APP_ENV` によって配信する CSS フォルダーが切り替わるかを確かめるサンプルです。
+Spring MVC（Spring Boot なし）で、`APP_ENV` による CSS の切り替えと、`LOG_LEVEL` による Logback のログレベル変更を確かめるサンプルです。
 
-- JDK 21 / Maven / Spring Framework 6.2.11 / Jakarta Servlet 6.0
-- JBoss EAP 8.1（Jakarta EE 10）向け。web.xml と jboss-deployment-structure.xml は使いません
+- JDK 21 / Maven / Spring Framework 6.2.11 / Jakarta Servlet 6.0 / Logback 1.5.18
+- JBoss EAP 8.1（Jakarta EE 10）向け。web.xml は使いません
 
 ## 構成
 
@@ -16,6 +16,8 @@ src/main/webapp/WEB-INF/views/home.jsp
 src/main/webapp/static/common.css                      # 全環境共通。CSS 変数を参照する
 src/main/webapp/dev/env.css                            # 水色の背景と "DEV"
 src/main/webapp/prod/env.css                           # ピンクの背景と "PROD"
+src/main/resources/logback.xml                         # LOG_LEVEL と ROOT_LOG_LEVEL
+src/main/webapp/WEB-INF/jboss-deployment-structure.xml # WAR 内の Logback を使う
 ```
 
 ## ビルド
@@ -60,6 +62,18 @@ standalone.bat
 `PropertySourcesPlaceholderConfigurer` が `Environment` から `${APP_ENV:prod}` を解決します。システムプロパティと環境変数の両方を指定した場合は、システムプロパティが優先されます。
 
 OpenShift では `oc set env deployment/<eap-app> APP_ENV=dev` で指定できます。
+
+## ログレベル
+
+`com.example` のレベルは `${LOG_LEVEL:-INFO}`、root のレベルは `${ROOT_LOG_LEVEL:-INFO}` です。未設定のときはどちらも `INFO` です。使える値は `TRACE`、`DEBUG`、`INFO`、`WARN`、`ERROR`、`OFF` です。
+
+```
+set LOG_LEVEL=DEBUG
+set ROOT_LOG_LEVEL=WARN
+standalone.bat
+```
+
+システムプロパティで指定する場合は `standalone.bat -DLOG_LEVEL=DEBUG -DROOT_LOG_LEVEL=WARN` です。同じ名前を環境変数とシステムプロパティの両方で指定した場合は、システムプロパティが優先されます。`com.example` にレベルがあると、そのログは root のレベルでは絞り込まれません。`/` を開くと `app-env-log-check` を DEBUG と INFO で出力します。`LOG_LEVEL` が `INFO` のときは INFO だけが EAP のログに出ます。EAP 標準の SLF4J を外して WAR 内の Logback を使うため、`jboss-deployment-structure.xml` で `org.slf4j` と `org.slf4j.impl` を除外しています。ログレベルも起動時に1回だけ決まります。
 
 ## 確認する URL
 
