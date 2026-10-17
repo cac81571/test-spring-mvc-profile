@@ -11,6 +11,7 @@ Spring MVC（Spring Boot なし）で、環境変数 `APP_ENV` によって CSS 
 pom.xml
 src/main/java/com/example/config/AppInitializer.java   # DispatcherServlet を "/" に登録
 src/main/java/com/example/config/WebConfig.java        # 検証対象の設定
+src/main/java/com/example/config/AppProperties.java    # Java 標準の Properties で同じファイルを読む
 src/main/java/com/example/web/HomeController.java      # "/" で画面を表示
 src/main/webapp/WEB-INF/views/home.jsp
 src/main/webapp/static/common.css                      # 全環境共通。CSS 変数を参照する
@@ -93,7 +94,21 @@ OpenShift では `oc set env deployment/<eap-app> APP_ENV=dev` で指定でき�
 
 `app.profile.label` のようにプレースホルダの無い値も、同じキーのシステムプロパティ（`-Dapp.profile.label=...`）があればそちらが使われます。プロパティファイル側を優先したい場合は `setLocalOverride(true)` にします。このサンプルでは既定のまま（Environment が優先）です。
 
-画面の `app.profile.label` と `app.message` で、ファイルの切り替えと環境変数による上書きを確認できます。
+画面の「Spring のプロパティ」で、ファイルの切り替えと環境変数による上書きを確認できます。
+
+## Java 標準のプロパティ
+
+`AppProperties` は Spring を使わず、`java.util.Properties` で同じ `application-${APP_ENV}.properties` を UTF-8 で読みます。`Properties.load(InputStream)` は ISO-8859-1 なので、`Reader` を使っています。ファイルの選択は `WebConfig.resolveAppEnv()` と同じです。
+
+`${APP_MESSAGE:既定値}` は読み込み後に置き換えます。優先順は次のとおりです。
+
+1. システムプロパティ `APP_MESSAGE`（`-DAPP_MESSAGE=...`）
+2. 環境変数 `APP_MESSAGE`
+3. コロン以降の既定値
+
+名前はファイルに書いたものと一致する必要があります。`APP_MESSAGE` が `app.message` に結び付くことはありません。`-Dapp.message=...` では、この経路の `app.message` は変わりません。
+
+画面の「Java 標準のプロパティ」に、読んだファイル名と解決後の値を出します。Spring の欄と並べると、`-DAPP_MESSAGE` と環境変数を同時に指定したときの違いが分かります。標準側はシステムプロパティ、Spring 側は環境変数 `APP_MESSAGE` がキー `app.message` に先に当たります。
 
 ## 確認する URL
 
@@ -116,7 +131,7 @@ set APP_MESSAGE=環境変数で上書き
 standalone.bat
 ```
 
-このとき `app.profile.label` は `DEV`、`app.message` は `環境変数で上書き` になります。`APP_MESSAGE` を外して再起動すると、dev の既定メッセージに戻ります。
+このとき Spring 側も Java 標準側も、`app.profile.label` は `DEV`、`app.message` は `環境変数で上書き` になります。`APP_MESSAGE` を外して再起動すると、dev の既定メッセージに戻ります。
 
 ## 注意点
 
