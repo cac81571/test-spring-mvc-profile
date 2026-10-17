@@ -16,10 +16,10 @@
   <p>app.message: <b>${appMessage}</b></p>
   <p>System property APP_MESSAGE: ${empty messageSysProp ? '(未設定)' : messageSysProp}</p>
   <p>環境変数 APP_MESSAGE: ${empty messageEnvVar ? '(未設定)' : messageEnvVar}</p>
-  <h2>Java 標準のプロパティ</h2>
-  <p>読み込んだファイル: <b>${jdkFile}</b></p>
-  <p>app.profile.label: <b>${jdkProfileLabel}</b></p>
-  <p>app.message: <b>${jdkAppMessage}</b></p>
+  <h2>Commons Configuration</h2>
+  <p>読み込んだファイル: <b>${commonsFile}</b></p>
+  <p>app.profile.label: <b>${commonsProfileLabel}</b></p>
+  <p>commons.message: <b>${commonsMessage}</b></p>
   <p>com.example の DEBUG: <b>${debugEnabled ? '有効' : '無効'}</b></p>
   <p>root のレベル: <b>${rootLevel}</b></p>
   <p><a href="${pageContext.request.contextPath}/static/env.css">/static/env.css を開く</a></p>

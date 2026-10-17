@@ -1,24 +1,22 @@
 package com.example.config;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.UncheckedIOException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.Properties;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
+import org.apache.commons.configuration2.Configuration;
+import org.apache.commons.configuration2.PropertiesConfiguration;
+import org.apache.commons.configuration2.ex.ConfigurationException;
+import org.apache.commons.configuration2.interpol.Lookup;
+import org.apache.commons.configuration2.io.FileHandler;
 
 /**
- * Java 標準の {@link Properties} で環境ごとのファイルを読む。
- * {@code ${NAME:既定値}} は、システムプロパティ、環境変数、既定値の順で置き換える。
+ * Apache Commons Configuration 2 で環境ごとのファイルを読む。
+ * プレースホルダは {@code ${ext:名前:-既定値}}。{@code ext} はシステムプロパティ、環境変数の順に見る。
  */
 public final class AppProperties {
 
-    private static final Pattern PLACEHOLDER = Pattern.compile("\\$\\{([^}:]+)(?::([^}]*))?}");
-
     private static final String FILE_NAME = "application-" + WebConfig.resolveAppEnv() + ".properties";
-    private static final Properties PROPERTIES = load(FILE_NAME);
+    private static final Configuration CONFIGURATION = load(FILE_NAME);
 
     private AppProperties() {
     }
@@ -28,48 +26,36 @@ public final class AppProperties {
     }
 
     public static String get(String key) {
-        return PROPERTIES.getProperty(key);
+        return CONFIGURATION.getString(key);
     }
 
-    private static Properties load(String fileName) {
-        Properties props = new Properties();
-        try (InputStream in = AppProperties.class.getClassLoader().getResourceAsStream(fileName)) {
-            if (in == null) {
-                throw new IllegalStateException(fileName + " がクラスパスにありません");
+    private static Configuration load(String fileName) {
+        URL url = AppProperties.class.getClassLoader().getResource(fileName);
+        if (url == null) {
+            throw new IllegalStateException(fileName + " がクラスパスにありません");
+        }
+        PropertiesConfiguration config = new PropertiesConfiguration();
+        FileHandler handler = new FileHandler(config);
+        handler.setEncoding(StandardCharsets.UTF_8.name());
+        try {
+            handler.load(url);
+        } catch (ConfigurationException e) {
+            throw new IllegalStateException(fileName + " を読めません", e);
+        }
+        // ${sys:A:-${env:A:-既定値}} は、sys が解決できると閉じ括弧が1つ残る。
+        // そのため接頭辞 ext で、システムプロパティの次に環境変数を見る。
+        config.getInterpolator().registerLookup("ext", new SysThenEnvLookup());
+        return config;
+    }
+
+    private static final class SysThenEnvLookup implements Lookup {
+        @Override
+        public Object lookup(String key) {
+            String value = System.getProperty(key);
+            if (value == null || value.isBlank()) {
+                value = System.getenv(key);
             }
-            props.load(new InputStreamReader(in, StandardCharsets.UTF_8));
-        } catch (IOException e) {
-            throw new UncheckedIOException(fileName + " を読めません", e);
+            return (value == null || value.isBlank()) ? null : value;
         }
-        for (String key : props.stringPropertyNames()) {
-            props.setProperty(key, resolvePlaceholders(props.getProperty(key)));
-        }
-        return props;
-    }
-
-    private static String resolvePlaceholders(String value) {
-        Matcher matcher = PLACEHOLDER.matcher(value);
-        StringBuilder resolved = new StringBuilder();
-        while (matcher.find()) {
-            String name = matcher.group(1);
-            String fallback = matcher.group(2);
-            String replacement = firstNonBlank(System.getProperty(name), System.getenv(name));
-            if (replacement == null) {
-                replacement = fallback == null ? matcher.group(0) : fallback;
-            }
-            matcher.appendReplacement(resolved, Matcher.quoteReplacement(replacement));
-        }
-        matcher.appendTail(resolved);
-        return resolved.toString();
-    }
-
-    private static String firstNonBlank(String first, String second) {
-        if (first != null && !first.isBlank()) {
-            return first;
-        }
-        if (second != null && !second.isBlank()) {
-            return second;
-        }
-        return null;
     }
 }

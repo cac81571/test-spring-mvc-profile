@@ -11,7 +11,7 @@ Spring MVC（Spring Boot なし）で、環境変数 `APP_ENV` によって CSS 
 pom.xml
 src/main/java/com/example/config/AppInitializer.java   # DispatcherServlet を "/" に登録
 src/main/java/com/example/config/WebConfig.java        # 検証対象の設定
-src/main/java/com/example/config/AppProperties.java    # Java 標準の Properties で同じファイルを読む
+src/main/java/com/example/config/AppProperties.java    # Commons Configuration 2 で同じファイルを読む
 src/main/java/com/example/web/HomeController.java      # "/" で画面を表示
 src/main/webapp/WEB-INF/views/home.jsp
 src/main/webapp/static/common.css                      # 全環境共通。CSS 変数を参照する
@@ -87,6 +87,7 @@ OpenShift では `oc set env deployment/<eap-app> APP_ENV=dev` で指定でき�
 |---|---|---|
 | app.profile.label | DEV | PROD |
 | app.message | `${APP_MESSAGE:これは dev のプロパティです}` | `${APP_MESSAGE:これは prod のプロパティです}` |
+| commons.message | `${ext:APP_MESSAGE:-これは dev のプロパティです}` | `${ext:APP_MESSAGE:-これは prod のプロパティです}` |
 
 `app.message` は、未設定ならファイルに書いた既定値（`${APP_MESSAGE:既定値}` のコロン以降）になります。環境変数 `APP_MESSAGE` を指定すると、その値に変わります。Spring は環境変数名の `.` と `_` を同じものとして扱い、大文字小文字も区別しないため、`APP_MESSAGE` はキー `app.message` に対応します。
 
@@ -96,19 +97,15 @@ OpenShift では `oc set env deployment/<eap-app> APP_ENV=dev` で指定でき�
 
 画面の「Spring のプロパティ」で、ファイルの切り替えと環境変数による上書きを確認できます。
 
-## Java 標準のプロパティ
+## Commons Configuration
 
-`AppProperties` は Spring を使わず、`java.util.Properties` で同じ `application-${APP_ENV}.properties` を UTF-8 で読みます。`Properties.load(InputStream)` は ISO-8859-1 なので、`Reader` を使っています。ファイルの選択は `WebConfig.resolveAppEnv()` と同じです。
+`AppProperties` は Apache Commons Configuration 2.15.1 で、Spring と同じ `application-${APP_ENV}.properties` を UTF-8 で読みます。ファイルの選択は `WebConfig.resolveAppEnv()` と同じです。値の置き換えはライブラリの変数展開です。
 
-`${APP_MESSAGE:既定値}` は読み込み後に置き換えます。優先順は次のとおりです。
+組み込みの接頭辞は `sys`（システムプロパティ）と `env`（環境変数）です。接頭辞の無い `${キー}` は、環境変数ではなく同じファイルの別のキーを指します。既定値の区切りは Spring の `:` ではなく `:-` です。
 
-1. システムプロパティ `APP_MESSAGE`（`-DAPP_MESSAGE=...`）
-2. 環境変数 `APP_MESSAGE`
-3. コロン以降の既定値
+`${sys:APP_MESSAGE:-${env:APP_MESSAGE:-既定値}}` のように入れ子にすると、システムプロパティが解決できたときに `}` が1つ残ります。そのため `ext` という `Lookup` を登録し、その中でシステムプロパティ、環境変数の順に見ています。見つからなければ `:-` のあとの既定値です。`-Dapp.message=...` では `commons.message` は変わりません。
 
-名前はファイルに書いたものと一致する必要があります。`APP_MESSAGE` が `app.message` に結び付くことはありません。`-Dapp.message=...` では、この経路の `app.message` は変わりません。
-
-画面の「Java 標準のプロパティ」に、読んだファイル名と解決後の値を出します。Spring の欄と並べると、`-DAPP_MESSAGE` と環境変数を同時に指定したときの違いが分かります。標準側はシステムプロパティ、Spring 側は環境変数 `APP_MESSAGE` がキー `app.message` に先に当たります。
+画面の「Commons Configuration」に、読んだファイル名と解決後の値を出します。Spring の `app.message` は環境変数 `APP_MESSAGE` がキー `app.message` に先に当たります。Commons Configuration 側は `ext` の順（システムプロパティ、環境変数、既定値）です。
 
 ## 確認する URL
 
@@ -131,7 +128,7 @@ set APP_MESSAGE=環境変数で上書き
 standalone.bat
 ```
 
-このとき Spring 側も Java 標準側も、`app.profile.label` は `DEV`、`app.message` は `環境変数で上書き` になります。`APP_MESSAGE` を外して再起動すると、dev の既定メッセージに戻ります。
+このとき Spring の `app.message` も Commons Configuration の `commons.message` も `環境変数で上書き` になり、`app.profile.label` はどちらも `DEV` です。`APP_MESSAGE` を外して再起動すると、dev の既定メッセージに戻ります。
 
 ## 注意点
 

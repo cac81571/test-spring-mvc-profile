@@ -23,22 +23,22 @@ public class HomeController {
     @Value("${app.message}")
     String appMessage;
 
-    final String jdkFile = AppProperties.fileName();
-    final String jdkProfileLabel = AppProperties.get("app.profile.label");
-    final String jdkAppMessage = AppProperties.get("app.message");
+    final String commonsFile = AppProperties.fileName();
+    final String commonsProfileLabel = AppProperties.get("app.profile.label");
+    final String commonsMessage = AppProperties.get("commons.message");
 
     @GetMapping("/")
     public String home(Model model) {
-        log.debug("app-env-log-check level=DEBUG appEnv={} profileLabel={} appMessage={} jdkFile={} jdkProfileLabel={} jdkAppMessage={}",
-                appEnv, profileLabel, appMessage, jdkFile, jdkProfileLabel, jdkAppMessage);
-        log.info("app-env-log-check level=INFO appEnv={} profileLabel={} appMessage={} jdkFile={} jdkProfileLabel={} jdkAppMessage={}",
-                appEnv, profileLabel, appMessage, jdkFile, jdkProfileLabel, jdkAppMessage);
+        log.debug("app-env-log-check level=DEBUG appEnv={} profileLabel={} appMessage={} commonsFile={} commonsProfileLabel={} commonsMessage={}",
+                appEnv, profileLabel, appMessage, commonsFile, commonsProfileLabel, commonsMessage);
+        log.info("app-env-log-check level=INFO appEnv={} profileLabel={} appMessage={} commonsFile={} commonsProfileLabel={} commonsMessage={}",
+                appEnv, profileLabel, appMessage, commonsFile, commonsProfileLabel, commonsMessage);
         model.addAttribute("appEnv", appEnv);
         model.addAttribute("profileLabel", profileLabel);
         model.addAttribute("appMessage", appMessage);
-        model.addAttribute("jdkFile", jdkFile);
-        model.addAttribute("jdkProfileLabel", jdkProfileLabel);
-        model.addAttribute("jdkAppMessage", jdkAppMessage);
+        model.addAttribute("commonsFile", commonsFile);
+        model.addAttribute("commonsProfileLabel", commonsProfileLabel);
+        model.addAttribute("commonsMessage", commonsMessage);
         model.addAttribute("sysProp", System.getProperty("APP_ENV"));
         model.addAttribute("envVar", System.getenv("APP_ENV"));
         model.addAttribute("messageSysProp", System.getProperty("APP_MESSAGE"));
