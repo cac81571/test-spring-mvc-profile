@@ -11,11 +11,7 @@
   <p>APP_ENV (@Value): <b>${appEnv}</b></p>
   <p>System property: ${empty sysProp ? '(未設定)' : sysProp}</p>
   <p>環境変数 APP_ENV: ${empty envVar ? '(未設定)' : envVar}</p>
-  <p>LOG_LEVEL システムプロパティ: ${empty logLevelSys ? '(未設定)' : logLevelSys}</p>
-  <p>環境変数 LOG_LEVEL: ${empty logLevelEnv ? '(未設定)' : logLevelEnv}</p>
   <p>com.example の DEBUG: <b>${debugEnabled ? '有効' : '無効'}</b></p>
-  <p>ROOT_LOG_LEVEL システムプロパティ: ${empty rootLevelSys ? '(未設定)' : rootLevelSys}</p>
-  <p>環境変数 ROOT_LOG_LEVEL: ${empty rootLevelEnv ? '(未設定)' : rootLevelEnv}</p>
   <p>root のレベル: <b>${rootLevel}</b></p>
   <p><a href="${pageContext.request.contextPath}/static/env.css">/static/env.css を開く</a></p>
   <p><a href="${pageContext.request.contextPath}/static/common.css">/static/common.css を開く</a></p>

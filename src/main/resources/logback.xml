@@ -6,9 +6,5 @@
     </encoder>
   </appender>
 
-  <logger name="com.example" level="${LOG_LEVEL:-INFO}"/>
-
-  <root level="${ROOT_LOG_LEVEL:-INFO}">
-    <appender-ref ref="CONSOLE"/>
-  </root>
+  <include resource="logback-${APP_ENV:-prod}.xml"/>
 </configuration>

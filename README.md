@@ -1,6 +1,6 @@
 # test-spring-mvc-profile
 
-Spring MVC（Spring Boot なし）で、`APP_ENV` による CSS の切り替えと、`LOG_LEVEL` による Logback のログレベル変更を確かめるサンプルです。
+Spring MVC（Spring Boot なし）で、環境変数 `APP_ENV` によって CSS フォルダーと Logback の設定ファイルが切り替わるかを確かめるサンプルです。
 
 - JDK 21 / Maven / Spring Framework 6.2.11 / Jakarta Servlet 6.0 / Logback 1.5.18
 - JBoss EAP 8.1（Jakarta EE 10）向け。web.xml は使いません
@@ -16,7 +16,9 @@ src/main/webapp/WEB-INF/views/home.jsp
 src/main/webapp/static/common.css                      # 全環境共通。CSS 変数を参照する
 src/main/webapp/dev/env.css                            # 水色の背景と "DEV"
 src/main/webapp/prod/env.css                           # ピンクの背景と "PROD"
-src/main/resources/logback.xml                         # LOG_LEVEL と ROOT_LOG_LEVEL
+src/main/resources/logback.xml                         # APP_ENV に応じた設定を include する
+src/main/resources/logback-dev.xml                     # com.example と root は DEBUG
+src/main/resources/logback-prod.xml                    # com.example と root は INFO
 src/main/webapp/WEB-INF/jboss-deployment-structure.xml # WAR 内の Logback を使う
 ```
 
@@ -65,15 +67,14 @@ OpenShift では `oc set env deployment/<eap-app> APP_ENV=dev` で指定でき�
 
 ## ログレベル
 
-`com.example` のレベルは `${LOG_LEVEL:-INFO}`、root のレベルは `${ROOT_LOG_LEVEL:-INFO}` です。未設定のときはどちらも `INFO` です。使える値は `TRACE`、`DEBUG`、`INFO`、`WARN`、`ERROR`、`OFF` です。
+`logback.xml` は `logback-${APP_ENV:-prod}.xml` を読みます。未設定のときは `logback-prod.xml` です。root のレベルもそのファイルで決まります。
 
-```
-set LOG_LEVEL=DEBUG
-set ROOT_LOG_LEVEL=WARN
-standalone.bat
-```
+| APP_ENV | com.example | root | 画面の DEBUG |
+|---|---|---|---|
+| なし / prod | INFO | INFO | 無効 |
+| dev | DEBUG | DEBUG | 有効 |
 
-システムプロパティで指定する場合は `standalone.bat -DLOG_LEVEL=DEBUG -DROOT_LOG_LEVEL=WARN` です。同じ名前を環境変数とシステムプロパティの両方で指定した場合は、システムプロパティが優先されます。`com.example` にレベルがあると、そのログは root のレベルでは絞り込まれません。`/` を開くと `app-env-log-check` を DEBUG と INFO で出力します。`LOG_LEVEL` が `INFO` のときは INFO だけが EAP のログに出ます。EAP 標準の SLF4J を外して WAR 内の Logback を使うため、`jboss-deployment-structure.xml` で `org.slf4j` と `org.slf4j.impl` を除外しています。ログレベルも起動時に1回だけ決まります。
+`/` を開くと `app-env-log-check` を DEBUG と INFO で出力します。prod では INFO だけが EAP のログに出ます。EAP 標準の SLF4J を外して WAR 内の Logback を使うため、`jboss-deployment-structure.xml` で `org.slf4j` と `org.slf4j.impl` を除外しています。どのファイルを読むかも起動時に1回だけ決まります。
 
 ## 確認する URL
 
