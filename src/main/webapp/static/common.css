@@ -1,0 +1,9 @@
+@import url("env.css");
+
+body { background: var(--env-bg); }
+body::before {
+  content: var(--env-label);
+  font-size: 2em;
+  font-weight: bold;
+  color: var(--env-label-color);
+}

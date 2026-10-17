@@ -1,0 +1,17 @@
+<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>test-spring-mvc-profile</title>
+  <link rel="stylesheet" href="${pageContext.request.contextPath}/static/common.css">
+</head>
+<body>
+  <h1>Spring MVC profile test</h1>
+  <p>APP_ENV (@Value): <b>${appEnv}</b></p>
+  <p>System property: ${empty sysProp ? '(未設定)' : sysProp}</p>
+  <p>環境変数 APP_ENV: ${empty envVar ? '(未設定)' : envVar}</p>
+  <p><a href="${pageContext.request.contextPath}/static/env.css">/static/env.css を開く</a></p>
+  <p><a href="${pageContext.request.contextPath}/static/common.css">/static/common.css を開く</a></p>
+</body>
+</html>
